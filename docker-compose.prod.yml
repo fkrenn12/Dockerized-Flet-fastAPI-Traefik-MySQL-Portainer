@@ -1,0 +1,332 @@
+### !!! D E P L O Y M E N T Changes !!! ###
+# service: mosquitto -> comment out unsecure port # - "${MQTT_PORT_UNSECURE}:1883"
+# service: phpmyadmin -> uncomment  "- PMA_ABSOLUTE_URI= ${PHPMYADMIN_ABSOLUTE_URI}"
+# service: api -> adding "--root-path /makeraccess/api" to command line starting the uvicorn server
+services:
+  db:
+    image: mariadb
+    container_name: mariadb
+    restart: always
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    volumes:
+      - ./.mariadb/certs:/etc/mysql/certs
+      - ./.mariadb/conf.d/secure.cnf:/etc/mysql/conf.d/secure.cnf
+      - db_data:/var/lib/mysql
+      - /etc/localtime:/etc/localtime
+    environment:
+      # MYSQL_ROOT_PASSWORD_FILE: /run/secrets/root_password  # not working
+      MARIADB_ROOT_PASSWORD: example
+    #secrets:
+    #  - root_password
+    # port visible on the host to get access via ssh
+    ports:
+      - "${DB_PORT}:3306"
+    networks:
+      - backnet
+    # expose make it visible on the backnet but not on the host
+    expose:
+      - "${DB_PORT}"
+    depends_on:
+      - mosquitto
+
+  mosquitto:
+     image: eclipse-mosquitto:latest
+     container_name: mosquitto
+     restart: always
+     volumes:
+        - ./.mosquitto/config:/mosquitto/config:ro
+        - ./.mosquitto/certs/generate_certificates.sh:/mosquitto/certs/generate_certificates.sh
+        - ./.mosquitto/certs:/mosquitto/certs:ro
+     ports:
+       # Attention: 1883 is unsecure - only use it internal !
+       # - "${MQTT_PORT_UNSECURE}:1883"
+       - "${MQTT_PORT_SECURE}:8783"
+     expose:
+        - ${MQTT_PORT_UNSECURE}
+     networks:
+        - backnet
+     command:
+       - /bin/sh
+       - -c
+       - |
+         apk update
+         apk add openssl
+         /mosquitto/certs/./generate_certificates.sh
+         mosquitto -c /mosquitto/config/mosquitto.conf
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    # ports:
+    #  - 8081:80
+    environment:
+      # - PMA_ARBITRARY=1
+      - PMA_HOST=db
+      # Set the variable PMA_ABSOLUTE_URI to the fully-qualified path 
+      # bei http auf localhost - PMA_ABSOLUTE_URI auskommentieren
+      - PMA_ABSOLUTE_URI=https://${SUBDOMAIN_PHPMYADMIN}${DOMAIN}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.phpmyadmin.rule=Host(`${SUBDOMAIN_PHPMYADMIN}${DOMAIN}`)"
+      - "traefik.http.routers.phpmyadmin.entrypoints=websecure"
+      - "traefik.http.routers.phpmyadmin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.phpmyadmin.loadbalancer.server.port=80"
+      - "traefik.http.routers.phpmyadmin.tls=true"
+    depends_on:
+      - db
+    networks:
+       - backnet
+  app:
+    # image: python:slim
+    build: ./backend/app_async
+    container_name: app
+    restart: always
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    environment:
+      - PRODUCTION=True
+    volumes:
+      - ./config:/usr/src/config:ro
+      - ./.env.prod:/usr/src/.env:ro
+      - ./backend/shared_database:/usr/src/shared_database:ro
+      - ./backend/shared_mqtt:/usr/src/shared_mqtt:ro
+      - ./backend/shared_utils:/usr/src/shared_utils:ro
+      - ./backend/log:/usr/src/log
+      - /etc/localtime:/etc/localtime
+    # install requirements on start.sh of the container
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cd /usr/src/app
+        python main.py
+    networks:
+      - backnet
+    depends_on:
+     - db
+     - mosquitto
+
+  api_unsecure:
+    build: ./backend/api_unsecure
+    container_name: api_unsecure
+    restart: always
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    environment:
+      - PRODUCTION=True
+    ports:
+      - '${UNSECURE_API_PORT}:${UNSECURE_API_PORT}'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.remote-update.rule=Host(`${SUBDOMAIN_REMOTE_UPDATE}${DOMAIN}`)"
+      - "traefik.http.routers.remote-update.entrypoints=websecure"
+      # - "traefik.http.services.remote-update.loadbalancer.server.port=${UNSECURE_API_PORT}"
+      - "traefik.http.routers.remote-update.tls.certresolver=letsencrypt"
+    networks:
+      - backnet
+    volumes:
+      - ./config:/usr/src/config:ro
+      - ./backend/shared_database:/usr/src/shared_database:ro
+      - ./backend/shared_utils:/usr/src/shared_utils:ro
+      - ./backend/log:/usr/src/log
+      - ./.env.prod:/usr/src/.env:ro
+      - /etc/localtime:/etc/localtime
+      - ./backend/api_unsecure/firmware:/usr/src/app/firmware
+    command:
+      # start uvicorn server
+      - /bin/sh
+      - -c
+      - |
+        cd /usr/src/app
+        uvicorn main:api --host "0.0.0.0" --port ${UNSECURE_API_PORT}  --proxy-headers
+    depends_on:
+      - db
+
+  api:
+    # image: python:slim
+    build: ./backend/api
+    container_name: api
+    restart: always
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    environment:
+      - PRODUCTION=True
+    # ports:
+    #  - '${API_PORT}:${API_PORT}'
+    volumes:
+      - ./config:/usr/src/config:ro
+      - ./.env.prod:/usr/src/.env:ro
+      - ./backend/shared_database:/usr/src/shared_database:ro
+      - ./backend/shared_mqtt:/usr/src/shared_mqtt:ro
+      - ./backend/shared_utils:/usr/src/shared_utils:ro
+      - ./backend/log:/usr/src/log
+      - /etc/localtime:/etc/localtime
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-secure.rule=Host(`${SUBDOMAIN_API}${DOMAIN}`)"
+      - "traefik.http.routers.api-secure.entrypoints=websecure"
+      - "traefik.http.services.api-secure.loadbalancer.server.port=${API_PORT}"
+      - "traefik.http.routers.api-secure.tls.certresolver=letsencrypt"
+    networks:
+      - backnet
+    # uvicorn main:api --host "0.0.0.0" --port ${API_PORT} --proxy-headers --root-path /makeraccess/api
+    # The root path is defined through the nginx reverse proxy settings in /etc/nginx/sites-available/default
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cd /usr/src/app
+        uvicorn main:api --host "0.0.0.0" --port ${API_PORT} --proxy-headers
+    depends_on:
+      - db
+      - mosquitto
+
+  # php-nginx
+  # nginx and php are running as user: 'nobody'
+  php-nginx:
+    image: trafex/php-nginx
+    container_name: php-nginx
+    restart: always
+    # ports:
+    #  - 8080:8080
+    volumes:
+    # default site
+      - ./frontend/web_php_version/html:/var/www/html
+    # nginx settings
+      - ./frontend/web_php_version/nginx-php-config/default.conf:/etc/nginx/conf.d/default.conf
+      - ./frontend/web_php_version/nginx-php-config/sites-enabled/site.conf:/etc/nginx/conf.d/site.conf
+    # php settings
+      - ./frontend/web_php_version/nginx-php-config/php-custom.ini:/etc/php81/conf.d/php-custom.ini
+    # php fpm settings
+      - ./frontend/web_php_version/nginx-php-config/php-custom-fpm-settings.conf:/etc/php81/php-fpm.d/server.conf
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web-php.rule=Host(`${SUBDOMAIN_WEB_OLD}${DOMAIN}`)"
+      - "traefik.http.routers.web-php.entrypoints=websecure"
+      - "traefik.http.routers.web-php.tls.certresolver=letsencrypt"
+      - "traefik.http.services.web-php.loadbalancer.server.port=8080"
+    networks:
+      - backnet
+    depends_on:
+      - db
+
+  django-react:
+    restart: always
+    build: ./frontend/django_react/.
+    container_name: django_react
+    volumes:
+      - ./config:/usr/src/config:ro
+      - ./.env.prod:/usr/src/.env:ro
+    environment:
+      - PRODUCTION=True
+    # ports:
+    #   - "5005:5005"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.django-react.rule=Host(`${SUBDOMAIN_WEB}${DOMAIN}`)"
+      - "traefik.http.routers.django-react.entrypoints=websecure"
+      - "traefik.http.routers.django-react.tls.certresolver=letsencrypt"
+      - "traefik.http.services.django-react.loadbalancer.server.port=5005"
+      # - "traefik.http.routers.django-react.service=django-react"
+
+    networks:
+      - backnet
+
+  web-app:
+    build:  ./frontend/web-app
+    container_name: web-app
+    restart: always
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    # ports:
+    #  - "7777:7777"
+    environment:
+      - FLET_FORCE_WEB_SERVER=true
+      - FLET_SERVER_PORT=7777
+    volumes:
+      - ./config:/usr/src/config:ro
+      - ./.env.prod:/usr/src/.env:ro
+      - ./frontend/web-app:/usr/src/app:ro
+    labels:
+      # Frontend
+      - "traefik.enable=true"
+      - "traefik.http.routers.web-app.rule=Host(`${SUBDOMAIN_WEBAPP}${DOMAIN}`)"
+      - "traefik.http.routers.web-app.entrypoints=websecure"
+      - "traefik.http.services.web-app.loadbalancer.server.port=7777"
+      - "traefik.http.routers.web-app.service=web-app"
+      - "traefik.http.routers.web-app.tls.certresolver=letsencrypt"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cd /usr/src/app
+        python main.py
+    networks:
+      - backnet
+    depends_on:
+      - mosquitto
+
+  portainer:
+    image: portainer/portainer-ce:2.21.2
+    command: -H unix:///var/run/docker.sock
+    container_name: portainer
+    restart: always
+    #ports:
+    # - 9000:9000
+    volumes:
+     - "/var/run/docker.sock:/var/run/docker.sock"
+     - "./portainer_data:/data"
+    labels:
+      # Frontend
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${SUBDOMAIN_PORTAINER}${DOMAIN}`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.services.frontend.loadbalancer.server.port=9000"
+      - "traefik.http.routers.frontend.service=frontend"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+    networks:
+      - backnet
+
+  traefik:
+    build:
+      context: ./.traefik
+      dockerfile: Dockerfile.prod
+    container_name: traefik
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./.traefik/public-certificates:/certificates"
+    command:
+      - "--providers.docker=true"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=${EMAIL})"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`${SUBDOMAIN_TRAEFIK_DASH}${DOMAIN}`) && (PathPrefix(`/`))"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=basic-auth-global"
+      # Passwort Diplomarbeit_2024
+      - "traefik.http.middlewares.basic-auth-global.basicauth.users=admin:$$2y$$05$$gY5Uot31ZdYJVqxCJ.YEdu0JE86dBh0SM3INin0xEPCrMudc3rrMi"
+      # basic auth do not work yet - add insecure = false in the api section at the toml file
+      # - "traefik.http.routers.traefik.middlewares=traefik_auth"
+      # - "traefik.http.middleware.traefik_auth.basicauth.users=franz:$$2a$$12$$nAy8yi.264b/kNZXZobYw.YqQQErWRS9Do2rz0Bci6H6WYMkIpCsG"
+    networks:
+      - backnet
+
+networks:
+  backnet:
+
+volumes:
+  db_data:
+      name: ${DB_VOLUME_NAME}
+  mosquitto:
+
+#secrets:
+#  root_password:
+#    file: root_password.txt

@@ -1,0 +1,10 @@
+/.mosquitto/log/
+.mosquitto/certs/ca.*
+.mosquitto/certs/client.*
+.mosquitto/certs/server.*
+/backend/log/
+/backend/_sql/
+.mosquitto/data/mosquitto.db
+/micropython-firmware/mpy/
+/.idea/*
+/_archive/

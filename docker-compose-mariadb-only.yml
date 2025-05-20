@@ -1,0 +1,46 @@
+version: 1.0'
+services:
+  db:
+    image: mariadb
+    restart: always
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    volumes:
+      - ./.mariadb/certs:/etc/mysql/certs
+      - ./.mariadb/conf.d/secure.cnf:/etc/mysql/conf.d/secure.cnf
+      - db_data:/var/lib/mysql
+      - /etc/localtime:/etc/localtime
+    environment:
+      # MYSQL_ROOT_PASSWORD_FILE: /run/secrets/root_password  # not working
+      MARIADB_ROOT_PASSWORD: example
+    secrets:
+      - root_password
+    # port visible on the host to get access via ssh
+    ports:
+      - "${DB_PORT}:3306"
+    networks:
+      - backnet
+    # expose make it visible on the backnet but not on the host
+    expose:
+      - "3306"
+#command:
+#      - /bin/sh
+#      - -c
+#      - |
+#        service mariadb restart
+# apt update
+# apt install mc
+# service mariadb restart
+# apt install openssl
+# /etc/mysql/certs/./generate_certificates.sh
+
+networks:
+   backnet:
+
+volumes:
+  db_data:
+    name: ${DB_VOLUME_NAME}
+
+secrets:
+  root_password:
+    file: root_password.txt
