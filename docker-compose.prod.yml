@@ -27,33 +27,6 @@ services:
     # expose make it visible on the backnet but not on the host
     expose:
       - "${DB_PORT}"
-    depends_on:
-      - mosquitto
-
-  mosquitto:
-     image: eclipse-mosquitto:latest
-     container_name: mosquitto
-     restart: always
-     volumes:
-        - ./.mosquitto/config:/mosquitto/config:ro
-        - ./.mosquitto/certs/generate_certificates.sh:/mosquitto/certs/generate_certificates.sh
-        - ./.mosquitto/certs:/mosquitto/certs:ro
-     ports:
-       # Attention: 1883 is unsecure - only use it internal !
-       # - "${MQTT_PORT_UNSECURE}:1883"
-       - "${MQTT_PORT_SECURE}:8783"
-     expose:
-        - ${MQTT_PORT_UNSECURE}
-     networks:
-        - backnet
-     command:
-       - /bin/sh
-       - -c
-       - |
-         apk update
-         apk add openssl
-         /mosquitto/certs/./generate_certificates.sh
-         mosquitto -c /mosquitto/config/mosquitto.conf
 
   phpmyadmin:
     image: phpmyadmin
@@ -80,7 +53,7 @@ services:
        - backnet
   app:
     # image: python:slim
-    build: ./backend/app_async
+    build: ./backend/app
     container_name: app
     restart: always
     stdin_open: true # docker run -i
@@ -106,43 +79,7 @@ services:
       - backnet
     depends_on:
      - db
-     - mosquitto
 
-  api_unsecure:
-    build: ./backend/api_unsecure
-    container_name: api_unsecure
-    restart: always
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
-    environment:
-      - PRODUCTION=True
-    ports:
-      - '${UNSECURE_API_PORT}:${UNSECURE_API_PORT}'
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.remote-update.rule=Host(`${SUBDOMAIN_REMOTE_UPDATE}${DOMAIN}`)"
-      - "traefik.http.routers.remote-update.entrypoints=websecure"
-      # - "traefik.http.services.remote-update.loadbalancer.server.port=${UNSECURE_API_PORT}"
-      - "traefik.http.routers.remote-update.tls.certresolver=letsencrypt"
-    networks:
-      - backnet
-    volumes:
-      - ./config:/usr/src/config:ro
-      - ./backend/shared_database:/usr/src/shared_database:ro
-      - ./backend/shared_utils:/usr/src/shared_utils:ro
-      - ./backend/log:/usr/src/log
-      - ./.env.prod:/usr/src/.env:ro
-      - /etc/localtime:/etc/localtime
-      - ./backend/api_unsecure/firmware:/usr/src/app/firmware
-    command:
-      # start uvicorn server
-      - /bin/sh
-      - -c
-      - |
-        cd /usr/src/app
-        uvicorn main:api --host "0.0.0.0" --port ${UNSECURE_API_PORT}  --proxy-headers
-    depends_on:
-      - db
 
   api:
     # image: python:slim
@@ -181,7 +118,7 @@ services:
         uvicorn main:api --host "0.0.0.0" --port ${API_PORT} --proxy-headers
     depends_on:
       - db
-      - mosquitto
+
 
   # php-nginx
   # nginx and php are running as user: 'nobody'
@@ -212,31 +149,9 @@ services:
     depends_on:
       - db
 
-  django-react:
-    restart: always
-    build: ./frontend/django_react/.
-    container_name: django_react
-    volumes:
-      - ./config:/usr/src/config:ro
-      - ./.env.prod:/usr/src/.env:ro
-    environment:
-      - PRODUCTION=True
-    # ports:
-    #   - "5005:5005"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.django-react.rule=Host(`${SUBDOMAIN_WEB}${DOMAIN}`)"
-      - "traefik.http.routers.django-react.entrypoints=websecure"
-      - "traefik.http.routers.django-react.tls.certresolver=letsencrypt"
-      - "traefik.http.services.django-react.loadbalancer.server.port=5005"
-      # - "traefik.http.routers.django-react.service=django-react"
-
-    networks:
-      - backnet
-
-  web-app:
-    build:  ./frontend/web-app
-    container_name: web-app
+  flet-app:
+    build:  ./frontend/flet-app
+    container_name: flet-app
     restart: always
     stdin_open: true # docker run -i
     tty: true        # docker run -t
@@ -265,8 +180,7 @@ services:
         python main.py
     networks:
       - backnet
-    depends_on:
-      - mosquitto
+
 
   portainer:
     image: portainer/portainer-ce:2.21.2
@@ -327,6 +241,4 @@ volumes:
       name: ${DB_VOLUME_NAME}
   mosquitto:
 
-#secrets:
-#  root_password:
-#    file: root_password.txt
+

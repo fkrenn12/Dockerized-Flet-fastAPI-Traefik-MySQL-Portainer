@@ -1,0 +1,13 @@
+PyMySQL==1.1.1
+scheduler==0.8.7
+aiomysql==0.2.0
+python-dotenv==1.0.1
+colorama==0.4.6
+dictobj==0.4
+psutil==6.1.0
+gmqtt==0.6.16
+uvicorn==0.32.0
+fastapi==0.115.4
+pydantic==2.9.2
+
+

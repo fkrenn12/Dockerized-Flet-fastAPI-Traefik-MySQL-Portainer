@@ -17,8 +17,6 @@ services:
     environment:
       # MYSQL_ROOT_PASSWORD_FILE: /run/secrets/root_password  # not working
       MARIADB_ROOT_PASSWORD: example
-    secrets:
-      - root_password
     # port visible on the host to get access via ssh
     ports:
       - "${DB_PORT}:3306"
@@ -27,35 +25,6 @@ services:
     # expose make it visible on the backnet but not on the host
     expose:
       - "${DB_PORT}"
-    depends_on:
-      - mosquitto
-  mosquitto:
-     image: eclipse-mosquitto:latest
-     restart: always
-     volumes:
-        - ./.mosquitto/config:/mosquitto/config:ro
-        - ./.mosquitto/certs:/mosquitto/certs:ro
-        - ./.mosquitto/log:/mosquitto/log
-        - ./.mosquitto/data:/mosquitto/data
-        - ./.mosquitto/certs/generate_certificates.sh:/mosquitto/certs/generate_certificates.sh
-     ports:
-       # Attention: 1883 is unsecure - only use it internal !
-       # - "${MQTT_PORT_UNSECURE}:1883"
-       - "${MQTT_PORT_SECURE}:8783"
-     expose:
-        - ${MQTT_PORT_UNSECURE}
-     networks:
-        - backnet
-     command:
-       # chmod 0700 /mosquitto/data/mosquitto.db
-       # /mosquitto/certs/./generate_certificates.sh
-       - /bin/sh
-       - -c
-       - |
-         apk update
-         apk add openssl
-         /mosquitto/certs/./generate_certificates.sh
-         mosquitto -c /mosquitto/config/mosquitto.conf
 
   phpmyadmin:
     image: phpmyadmin
@@ -103,35 +72,7 @@ services:
     depends_on:
      - db
      - mosquitto
-  api_unsecure:
-    build: ./backend/api_unsecure
-    restart: always
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
-    ports:
-      - '${UNSECURE_API_PORT}:${UNSECURE_API_PORT}'
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.remote-update.rule=Host(`${SUBDOMAIN_REMOTE_UPDATE}${DOMAIN}`)"
-    networks:
-      - backnet
-    volumes:
-      - ./config:/usr/src/config:ro
-      - ./.env:/usr/src/.env
-      - ./backend/shared_database:/usr/src/shared_database:ro
-      - ./backend/shared_utils:/usr/src/shared_utils:ro
-      - ./backend/log:/usr/src/log
-      - /etc/localtime:/etc/localtime
-      - ./backend/api_unsecure/firmware:/usr/src/app/firmware
-    command:
-      # start uvicorn server
-      - /bin/sh
-      - -c
-      - |
-        cd /usr/src/app
-        uvicorn main:api --host "0.0.0.0" --port ${UNSECURE_API_PORT}
-    depends_on:
-      - db
+
   api:
     # image: python:slim
     build: ./backend/api
@@ -191,21 +132,7 @@ services:
     depends_on:
       - db
 
-  django-react:
-    restart: always
-    build: ./frontend/django_react/.
-    volumes:
-      - ./config:/usr/src/config:ro
-      - .env:/usr/src/.env:ro
-    ports:
-      - "5005:5005"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.django-react.rule=Host(`${SUBDOMAIN_WEB}${DOMAIN}`)"
-    networks:
-      - backnet
-
-  web-app:
+  flet-app:
     build: ./frontend/web-app
     container_name: web-app
     restart: always
@@ -271,6 +198,3 @@ volumes:
       name: ${DB_VOLUME_NAME}
   mosquitto:
 
-secrets:
-  root_password:
-    file: root_password.txt

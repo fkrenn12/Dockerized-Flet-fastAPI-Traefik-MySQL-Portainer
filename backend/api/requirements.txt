@@ -1,0 +1,14 @@
+uvicorn==0.32.0
+fastapi==0.115.4
+pydantic==2.9.2
+aiomysql==0.2.0
+dictobj==0.4
+colorama==0.4.6
+python-multipart==0.0.16
+passlib==1.7.4
+python-jose==3.3.0
+bcrypt==4.2.0
+email-validator==2.2.0
+gmqtt==0.6.16
+python-dotenv==1.0.1
+psutil==6.1.0
