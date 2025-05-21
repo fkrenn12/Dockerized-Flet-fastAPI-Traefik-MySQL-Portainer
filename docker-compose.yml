@@ -12,13 +12,12 @@ services:
     volumes:
       - ./.mariadb/certs:/etc/mysql/certs
       - ./.mariadb/conf.d/secure.cnf:/etc/mysql/conf.d/secure.cnf
-      - db_data:/var/lib/mysql
+      # - ${DB_VOLUME_NAME}:/var/lib/mysql
+      - ./.mariadb/${DB_VOLUME_NAME}:/var/lib/mysql
       - /etc/localtime:/etc/localtime
     environment:
       # MYSQL_ROOT_PASSWORD_FILE: /run/secrets/root_password  # not working
       MARIADB_ROOT_PASSWORD: example
-    #secrets:
-    #  - root_password
     # port visible on the host to get access via ssh
     ports:
       - "${DB_PORT}:3306"
@@ -80,7 +79,6 @@ services:
     depends_on:
      - db
 
-
   api:
     # image: python:slim
     build: ./backend/api
@@ -94,10 +92,7 @@ services:
     #  - '${API_PORT}:${API_PORT}'
     volumes:
       - ./config:/usr/src/config:ro
-      - ./.env.prod:/usr/src/.env:ro
-      - ./backend/shared_database:/usr/src/shared_database:ro
-      - ./backend/shared_mqtt:/usr/src/shared_mqtt:ro
-      - ./backend/shared_utils:/usr/src/shared_utils:ro
+      - ./.env:/usr/src/.env:ro
       - ./backend/log:/usr/src/log
       - /etc/localtime:/etc/localtime
     labels:
@@ -108,8 +103,6 @@ services:
       - "traefik.http.routers.api-secure.tls.certresolver=letsencrypt"
     networks:
       - backnet
-    # uvicorn main:api --host "0.0.0.0" --port ${API_PORT} --proxy-headers --root-path /makeraccess/api
-    # The root path is defined through the nginx reverse proxy settings in /etc/nginx/sites-available/default
     command:
       - /bin/sh
       - -c
@@ -239,6 +232,6 @@ networks:
 volumes:
   db_data:
       name: ${DB_VOLUME_NAME}
-  mosquitto:
+
 
 

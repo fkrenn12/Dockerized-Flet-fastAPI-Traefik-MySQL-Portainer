@@ -1,2 +1,2 @@
 # /mariadb/certs/./generate_certificates.sh
-docker compose  --env-file ./.env.dev -f docker-compose.dev.yml up -d
+docker compose  --env-file ./.env -f docker-compose.yml up -d
