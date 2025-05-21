@@ -59,9 +59,9 @@ services:
     environment:
       - PRODUCTION=${PRODUCTION}
     volumes:
-      - ./config:/usr/src/config:ro
-      - ./.env.prod:/usr/src/.env:ro
-      - ./backend/log:/usr/src/log
+      - ./shared:/usr/src/shared:ro
+      - ./.env:/usr/src/.env:ro
+      - ./backend/app/app:/usr/src/app:ro
       - /etc/localtime:/etc/localtime
     # install requirements on start.sh of the container
     command:
@@ -89,7 +89,7 @@ services:
     volumes:
       - ./shared:/usr/src/shared:ro
       - ./.env:/usr/src/.env:ro
-      - ./frontend/flet/app:/usr/src/app:ro
+      - ./backend/api/app:/usr/src/app:ro
       - /etc/localtime:/etc/localtime
     labels:
       - "traefik.enable=true"
@@ -108,9 +108,9 @@ services:
     depends_on:
       - db
 
-  flet-app:
-    build:  ./frontend/flet-app
-    container_name: flet-app
+  flet:
+    build:  ./frontend/flet
+    container_name: flet
     restart: always
     stdin_open: true # docker run -i
     tty: true        # docker run -t
@@ -124,7 +124,7 @@ services:
     volumes:
       - ./shared:/usr/src/shared:ro
       - ./.env:/usr/src/.env:ro
-      - ./frontend/flet-app:/usr/src/app:ro
+      - ./frontend/flet/app:/usr/src/app:ro
       - /etc/localtime:/etc/localtime
     labels:
       # Frontend
@@ -181,7 +181,7 @@ services:
     # - 9000:9000
     volumes:
      - "/var/run/docker.sock:/var/run/docker.sock"
-     - "./portainer_data:/data"
+     - "./.portainer_data:/data"
     labels:
       # Frontend
       - "traefik.enable=true"
