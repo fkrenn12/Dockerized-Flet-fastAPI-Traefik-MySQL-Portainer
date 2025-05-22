@@ -30,6 +30,7 @@ def main(page: ft.Page):
             print(f'Route_change Exception {e}')
 
     def view_pop(view):
+        print(f'Pop View{view}')
         page.views.pop()
         top_view = page.views[-1]
         page.go(top_view.route)
