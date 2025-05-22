@@ -58,7 +58,7 @@ services:
     volumes:
       - ./shared:/usr/src/shared:ro
       - ./backend/app/log:/usr/src/log
-      - ./.env:/usr/src/.env:ro
+      - ./.env:/usr/src/app.env:ro
       - ./backend/app/src:/usr/src/app/src:ro
       - /etc/localtime:/etc/localtime
     command:
@@ -87,8 +87,8 @@ services:
       - '${API_PORT}:${API_PORT}'
     volumes:
       - ./shared:/usr/src/shared:ro
-      - ./backend/api/log:/usr/src/log
-      - ./.env:/usr/src/.env:ro
+      - ./backend/api/log:/usr/src/app/log
+      - ./.env:/usr/src/app/.env:ro
       - ./backend/api/src:/usr/src/app/src:ro
       - /etc/localtime:/etc/localtime
     labels:
@@ -116,18 +116,18 @@ services:
     restart: always
     stdin_open: true # docker run -i
     tty: true        # docker run -t
-    # ports:
-    #  - "7777:7777"
+    ports:
+      - "7777:7777"
     environment:
       - PRODUCTION=${PRODUCTION}
       - FLET_FORCE_WEB_SERVER=true
       - FLET_SERVER_PORT=7777
       - FLET_APP_LIFETIME_MINUTES=10
     volumes:
-      - ./shared:/usr/shared:ro
-      - ./frontend/flet/log:/usr/src/log
-      - ./.env:/usr/src/.env:ro
-      - ./frontend/flet/src:/usr/src/app:ro
+      - ./shared:/usr/src/shared:ro
+      - ./backend/api/log:/usr/src/app/log
+      - ./.env:/usr/src/app/.env:ro
+      - ./frontend/flet/src:/usr/src/app/src:ro
       - /etc/localtime:/etc/localtime
     labels:
       # Frontend
@@ -141,7 +141,7 @@ services:
       - /bin/sh
       - -c
       - |
-        cd /usr/src/app
+        cd /usr/src/app/src
         python main.py
     networks:
       - backnet
