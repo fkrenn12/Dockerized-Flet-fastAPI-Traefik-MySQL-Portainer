@@ -3,6 +3,7 @@ services:
     image: mariadb
     container_name: mariadb
     restart: always
+
     stdin_open: true # docker run -i
     tty: true        # docker run -t
     volumes:
@@ -45,7 +46,9 @@ services:
        - backnet
 
   app:
-    build: ./backend/app
+    build:
+      context: ./backend/app
+      dockerfile: ./${DOCKERFILE}
     container_name: app
     restart: always
     stdin_open: true # docker run -i
@@ -56,13 +59,13 @@ services:
       - ./shared:/usr/src/shared:ro
       - ./backend/app/log:/usr/src/log
       - ./.env:/usr/src/.env:ro
-      - ./backend/app/src:/usr/src/app:ro
+      - ./backend/app/src:/usr/src/app/src:ro
       - /etc/localtime:/etc/localtime
     command:
       - /bin/sh
       - -c
       - |
-        cd /usr/src/app
+        cd /usr/src/app/src
         python main.py
     networks:
       - backnet
@@ -70,20 +73,23 @@ services:
      - db
 
   api:
-    build: ./backend/api
+    build:
+      context: ./backend/api
+      dockerfile: ./${DOCKERFILE}
     container_name: api
     restart: always
     stdin_open: true # docker run -i
     tty: true        # docker run -t
     environment:
       - PRODUCTION=${PRODUCTION}
-    # ports:
-    #  - '${API_PORT}:${API_PORT}'
+      - DB_URL=${DB_URL}
+    ports:
+      - '${API_PORT}:${API_PORT}'
     volumes:
       - ./shared:/usr/src/shared:ro
       - ./backend/api/log:/usr/src/log
       - ./.env:/usr/src/.env:ro
-      - ./backend/api/app:/usr/src/app:ro
+      - ./backend/api/src:/usr/src/app/src:ro
       - /etc/localtime:/etc/localtime
     labels:
       - "traefik.enable=true"
@@ -97,13 +103,15 @@ services:
       - /bin/sh
       - -c
       - |
-        cd /usr/src/app
-        uvicorn main:api --host "0.0.0.0" --port ${API_PORT} --proxy-headers
+        cd /usr/src/app/src
+        uvicorn main:api --reload --workers 1 --host "0.0.0.0" --port ${API_PORT} --proxy-headers
     depends_on:
       - db
 
   flet:
-    build:  ./frontend/flet
+    build:
+      context: ./frontend/flet
+      dockerfile: ./${DOCKERFILE}
     container_name: flet
     restart: always
     stdin_open: true # docker run -i
@@ -116,10 +124,10 @@ services:
       - FLET_SERVER_PORT=7777
       - FLET_APP_LIFETIME_MINUTES=10
     volumes:
-      - ./shared:/usr/src/shared:ro
+      - ./shared:/usr/shared:ro
       - ./frontend/flet/log:/usr/src/log
       - ./.env:/usr/src/.env:ro
-      - ./frontend/flet/app:/usr/src/app:ro
+      - ./frontend/flet/src:/usr/src/app:ro
       - /etc/localtime:/etc/localtime
     labels:
       # Frontend
@@ -191,7 +199,7 @@ services:
   traefik:
     build:
       context: ./.traefik
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
     container_name: traefik
     ports:
       - 80:80

@@ -2,9 +2,14 @@ FROM python:3.13-slim
 
 WORKDIR /usr/src/app
 
-COPY ./requirements.txt /usr/src/requirements.txt
+# set environment variables - has advantages for python in docker cointainer
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-RUN pip install --no-cache-dir --upgrade -r /usr/src/requirements.txt
+# install python dependencies
+RUN pip install --upgrade pip
+COPY ./requirements.txt .
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
-COPY ./src /usr/src/app
+COPY ./src /usr/src/app/src
 
