@@ -1,2 +1,2 @@
-# not ready yet...
+# 
 ###Docker compose > 2.27

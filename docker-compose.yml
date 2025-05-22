@@ -166,7 +166,7 @@ services:
       - ./frontend/web_php_version/nginx-php-config/php-custom-fpm-settings.conf:/etc/php81/php-fpm.d/server.conf
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.web-php.rule=Host(`${SUBDOMAIN_WEB_OLD}${DOMAIN}`)"
+      - "traefik.http.routers.web-php.rule=Host(`${SUBDOMAIN_WEB}${DOMAIN}`)"
       - "traefik.http.routers.web-php.entrypoints=websecure"
       - "traefik.http.routers.web-php.tls.certresolver=letsencrypt"
       - "traefik.http.services.web-php.loadbalancer.server.port=8080"

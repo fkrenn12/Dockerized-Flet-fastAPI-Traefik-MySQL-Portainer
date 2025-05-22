@@ -1,6 +1,6 @@
 import flet as ft
 from home import HomeView
-from example_site import SiteView
+from settings import SiteView
 
 
 class RouteErrorView(ft.View):
@@ -12,23 +12,21 @@ class RouteErrorView(ft.View):
         self.page.update()
 
 
-def routing(route):
-    match route:
-        case '/':
-            return HomeView()
-        case '/site':
-            return SiteView()
-        case _:
-            return RouteErrorView()
+class Navigator:
+    def __init__(self, page: ft.Page):
+        self.page = page
 
+    def route_change(self, route):
+        self.page.views.clear()
+        self.page.views.append(HomeView(self.page))
+        if self.page.route == "/settings":
+            self.page.views.append(SiteView(self.page))
+        self.page.update()
 
-def navigate(route, page):
-    print('Navigate Page.route', page.route)
-    print('Navigate route', route)
-    page.views.clear()
-    # page.views.append(page.home_view)
-    view = routing(route)
-    if view:
-        page.views.append(view)
-    print('Navigate Page.views', page.views)
-    page.update()
+    def view_pop(self, view):
+        self.page.views.pop()
+        try:
+            top_view = self.page.views[-1]
+            self.page.go(top_view.route)
+        except IndexError:
+            self.page.views.append(HomeView(self.page))
