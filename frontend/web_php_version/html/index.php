@@ -5,6 +5,7 @@
     <title>Title</title>
 </head>
 <body>
-
+<h1>Example</h1>
+<h2>Served by nginx and php</h2>
 </body>
 </html>
