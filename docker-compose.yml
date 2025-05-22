@@ -116,8 +116,8 @@ services:
     restart: always
     stdin_open: true # docker run -i
     tty: true        # docker run -t
-    ports:
-      - "7777:7777"
+    # ports:
+    #  - "7777:7777"
     environment:
       - PRODUCTION=${PRODUCTION}
       - FLET_FORCE_WEB_SERVER=true
