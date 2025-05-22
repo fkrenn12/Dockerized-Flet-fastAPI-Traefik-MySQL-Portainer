@@ -1,4 +1,4 @@
-# 🚀Framework in Docker for Web Development 🚀
+# 🚀Docker Framework for Web Development 🚀
 ## 👉 MariaDB
 ## 👉 PhpMyAdmin(Administration for MariaDb)
 ## 👉 API (FastAPI)
