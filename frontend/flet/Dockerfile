@@ -6,5 +6,5 @@ COPY ./requirements.txt /usr/src/requirements.txt
 
 RUN pip install --no-cache-dir --upgrade -r /usr/src/requirements.txt
 
-COPY ./app /usr/src/app
+COPY ./src /usr/src/app
 
