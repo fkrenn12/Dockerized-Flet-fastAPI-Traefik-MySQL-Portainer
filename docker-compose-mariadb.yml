@@ -1,0 +1,24 @@
+  services:
+    db:
+      image: mariadb
+      container_name: mariadb
+      restart: always
+
+      stdin_open: true # docker run -i
+      tty: true        # docker run -t
+      volumes:
+        - ./.mariadb/certs:/etc/mysql/certs
+        - ./.mariadb/conf.d/secure.cnf:/etc/mysql/conf.d/secure.cnf
+        # - ${DB_VOLUME_NAME}:/var/lib/mysql
+        - ./.mariadb/${DB_VOLUME_NAME}:/var/lib/mysql
+        - /etc/localtime:/etc/localtime
+      environment:
+        MARIADB_ROOT_PASSWORD: example
+      # ports -> visible on the host to get ssh access
+      ports:
+        - "${PORT_DB}:3306"
+      # expose -> visible on the backnet but not on the host
+      expose:
+        - "${PORT_DB}"
+      networks:
+        - backnet

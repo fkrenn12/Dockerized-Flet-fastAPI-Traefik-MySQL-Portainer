@@ -1,0 +1,30 @@
+services:
+  traefik:
+    build:
+      context: ./.traefik
+      dockerfile: Dockerfile
+    container_name: traefik
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./.traefik/public-certificates:/certificates"
+    command:
+      - "--providers.docker=true"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=${EMAIL})"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`${SUBDOMAIN_TRAEFIK_DASH}${DOMAIN}`) && (PathPrefix(`/`))"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=basic-auth-global"
+      # Passwort Diplomarbeit_2024
+      - "traefik.http.middlewares.basic-auth-global.basicauth.users=admin:$$2y$$05$$gY5Uot31ZdYJVqxCJ.YEdu0JE86dBh0SM3INin0xEPCrMudc3rrMi"
+      # basic auth do not work yet - add insecure = false in the api section at the toml file
+      # - "traefik.http.routers.traefik.middlewares=traefik_auth"
+      # - "traefik.http.middleware.traefik_auth.basicauth.users=franz:$$2a$$12$$nAy8yi.264b/kNZXZobYw.YqQQErWRS9Do2rz0Bci6H6WYMkIpCsG"
+    networks:
+      - backnet

@@ -1,8 +1,8 @@
 topic read $SYS/#
 
 # example
-# user admin
-# topic #
+user admin
+topic #
 
 # example for read only
 # topic read topic/sub/#

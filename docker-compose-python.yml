@@ -1,0 +1,24 @@
+services:
+  python:
+    build:
+      dockerfile: ./${DOCKERFILE}
+    restart: always
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    environment:
+      - PRODUCTION=${PRODUCTION}
+      - DB_URL=${DB_URL}
+    volumes:
+      - ./shared:/usr/src/shared:ro
+      # - ./backend/app/log:/usr/src/log
+      - ./.env:/usr/src/app.env:ro
+      # - ./backend/app/src:/usr/src/app/src:ro
+      - /etc/localtime:/etc/localtime
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cd /usr/src/app/src
+        python main.py
+    networks:
+      - backnet
