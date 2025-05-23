@@ -11,7 +11,7 @@ services:
     volumes:
       - ./shared:/usr/src/shared:ro
       # - ./backend/app/log:/usr/src/log
-      - ./.env:/usr/src/app/.env:ro
+      - ./.env:/usr/.env:ro
       # - ./backend/app/src:/usr/src/app/src:ro
       - /etc/localtime:/etc/localtime
     command:

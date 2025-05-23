@@ -18,7 +18,7 @@ services:
       context: ./backend/app
     container_name: app
     volumes:
-      - ./backend/app/log:/usr/src/log
+      - ./backend/app/log:/usr/src/app/log
       - ./backend/app/src:/usr/src/app/src:ro
     depends_on:
       db:
@@ -32,7 +32,7 @@ services:
       context: ./backend/api
     container_name: api
     volumes:
-      - ./backend/api/log:/usr/src/log
+      - ./backend/api/log:/usr/src/app/log
       - ./backend/api/src:/usr/src/app/src:ro
     labels:
       - "traefik.enable=true"
