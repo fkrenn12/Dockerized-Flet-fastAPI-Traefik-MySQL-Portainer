@@ -36,3 +36,20 @@
         - "8080:8080"
       networks:
         - backnet
+
+    #Max Scale - läuft aber geht noch nicht ganz
+    # username is admin and the password is mariadb
+    maxscale:
+      image: mariadb/maxscale:latest
+      # volumes:
+      #  - ./.mariadb/maxscale/maxscale.cnf:/etc/maxscale.cnf.d/maxscale.cnf
+      ports:
+        - 0.0.0.0:4006:4006 # readwrite port
+        - 0.0.0.0:4008:4008 # readonly port
+        - 0.0.0.0:8989:8989 # REST API port
+      links:
+        - db:database
+      depends_on:
+        - db
+      networks:
+        - backnet

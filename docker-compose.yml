@@ -2,11 +2,11 @@ include:
   # uncomment needed services
   - docker-compose-mariadb.yml  # with service db declared !! select only  one database - both are not allowed
   # - docker-compose-postgres.yml # with service db declared !! select only  one database - both are not allowed
-  - docker-compose-php-nginx.yml  # with service php-nginx declared
-  - docker-compose-phpmyadmin.yml  # with service phpmyadmin declared
-  - docker-compose-portainer.yml  # with service portainer declared
+  # - docker-compose-php-nginx.yml  # with service php-nginx declared
+  # - docker-compose-phpmyadmin.yml  # with service phpmyadmin declared
+  # - docker-compose-portainer.yml  # with service portainer declared
   - docker-compose-traefik.yml  # with service traefik declared
-  - docker-compose-mosquitto.yml # with service mosquitto declared
+  # - docker-compose-mosquitto.yml # with service mosquitto declared
 
 
 services:
