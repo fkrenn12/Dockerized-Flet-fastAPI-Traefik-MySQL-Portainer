@@ -10,9 +10,7 @@ services:
       - DB_URL=${DB_URL}
     volumes:
       - ./shared:/usr/src/shared:ro
-      # - ./backend/app/log:/usr/src/log
       - ./.env:/usr/.env:ro
-      # - ./backend/app/src:/usr/src/app/src:ro
       - /etc/localtime:/etc/localtime
     command:
       - /bin/sh
