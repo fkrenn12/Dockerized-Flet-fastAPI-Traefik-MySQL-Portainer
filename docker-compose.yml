@@ -21,7 +21,8 @@ services:
       - ./backend/app/log:/usr/src/log
       - ./backend/app/src:/usr/src/app/src:ro
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   api:
     extends:
