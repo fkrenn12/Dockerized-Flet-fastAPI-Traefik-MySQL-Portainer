@@ -1,0 +1,25 @@
+  services:
+    mosquitto:
+       image: eclipse-mosquitto:latest
+       container_name: mosquitto
+       restart: always
+       volumes:
+          - ./.mosquitto/config:/mosquitto/config:ro
+          - ./.mosquitto/certs/generate_certificates.sh:/mosquitto/certs/generate_certificates.sh
+          - ./.mosquitto/certs:/mosquitto/certs:ro
+       ports:
+         # Attention: 1883 is unsecure - only use it internal !
+         # - "${MQTT_PORT_UNSECURE}:1883"
+         - "${MQTT_PORT_SECURE}:8883"
+       command:
+         - /bin/sh
+         - -c
+         - |
+           apk update
+           apk add openssl
+           /mosquitto/certs/./generate_certificates.sh
+           mosquitto -c /mosquitto/config/mosquitto.conf
+       expose:
+         - ${MQTT_PORT_UNSECURE}
+       networks:
+         - backnet

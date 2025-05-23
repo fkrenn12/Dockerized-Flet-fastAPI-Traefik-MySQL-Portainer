@@ -1,0 +1,12 @@
+topic read $SYS/#
+
+# example
+# user admin
+# topic #
+
+# example for read only
+# topic read topic/sub/#
+
+pattern write $SYS/broker/connection/%c/state
+# user must be the base topic
+pattern readwrite %u/#

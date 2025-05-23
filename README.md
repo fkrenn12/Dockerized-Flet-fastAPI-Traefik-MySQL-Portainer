@@ -9,3 +9,4 @@
 ## 👉 Traefik (HTTP-Reverse Proxy and LoadBalancer) 
 
 ###Docker compose > 2.27
+# /mariadb/certs/./generate_certificates.sh
