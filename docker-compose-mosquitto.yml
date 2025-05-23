@@ -8,9 +8,11 @@
           - ./.mosquitto/certs/generate_certificates.sh:/mosquitto/certs/generate_certificates.sh
           - ./.mosquitto/certs:/mosquitto/certs:ro
        ports:
-         # Attention: 1883 is unsecure - only use it internal !
-         # - "${PORT_MQTT_UNSECURE}:1883"
+         # Attention: 1883 and 8083 are unsecure - use it carefully !
+         - "${PORT_MQTT_UNSECURE}:1883"
          - "${PORT_MQTT_SECURE}:8883"
+         - "${PORT_MQTT_WS_SECURE}:8091"
+         - "${PORT_MQTT_WS_UNSECURE}:8083"
        command:
          - /bin/sh
          - -c

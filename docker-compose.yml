@@ -5,6 +5,7 @@ include:
   - docker-compose-phpmyadmin.yml  # with service phpmyadmin declared
   - docker-compose-portainer.yml  # with service portainer declared
   - docker-compose-traefik.yml  # with service traefik declared
+  - docker-compose-mosquitto.yml
 
 services:
   app:
