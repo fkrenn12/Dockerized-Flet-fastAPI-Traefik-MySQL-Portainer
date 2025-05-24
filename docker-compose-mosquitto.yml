@@ -5,14 +5,24 @@
        restart: always
        volumes:
           - ./.mosquitto/config:/mosquitto/config:ro
+          # self-signed certs are generated on every start of service - comment it, if providing other signed certs
           - ./.mosquitto/certs/generate_certificates.sh:/mosquitto/certs/generate_certificates.sh
-          - ./.mosquitto/certs:/mosquitto/certs:ro
+          # uncomment to hide in .mosquitto/certs for security purposes
+          - ./.mosquitto/certs:/mosquitto/certs
        ports:
          # Attention: 1883 and 8083 are unsecure - use it carefully !
-         - "0.0.0.0:${PORT_MQTT_UNSECURE}:1883"
+         - "127.0.0.1:${PORT_MQTT_UNSECURE}:1883"
          - "${PORT_MQTT_SECURE}:8883"
          - "${PORT_MQTT_WS_SECURE}:8091"
-         - "${PORT_MQTT_WS_UNSECURE}:8083"
+         - "127.0.0.1:${PORT_MQTT_WS_UNSECURE}:8083"
+
+       # The raw HTTP GET request should complete without needing to authenticate.
+       #healthcheck:
+       #  test: [ "CMD", "curl", "-X", "Upgrade", "-f", "http://localhost:${PORT_MQTT_UNSECURE}"]
+       #  interval: 10s
+       #  timeout: 10s
+       #  retries: 6
+
        command:
          - /bin/sh
          - -c
